@@ -27,8 +27,9 @@ func (h *Handler) handleLogin(w http.ResponseWriter, r *http.Request) {
 }
 func (h *Handler) handlRegister(w http.ResponseWriter, r *http.Request) {
 	payload := types.RegisterUserPayLoad{}
-	if err := utils.ParseJSON(r, payload); err != nil {
+	if err := utils.ParseJSON(r, &payload); err != nil {
 		utils.WriteError(w, http.StatusBadRequest, err)
+    return
 	}
 
 	_, err := h.store.GetUserByEmail(payload.Email)
