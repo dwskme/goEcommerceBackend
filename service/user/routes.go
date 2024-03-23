@@ -7,6 +7,7 @@ import (
 	"github.com/dwskme/goEcommerceBackend/service/auth"
 	"github.com/dwskme/goEcommerceBackend/types"
 	"github.com/dwskme/goEcommerceBackend/utils"
+	"github.com/go-playground/validator/v10"
 	"github.com/gorilla/mux"
 )
 
@@ -15,21 +16,25 @@ type Handler struct {
 }
 
 func NewHandler(store types.UserStore) *Handler {
-  return &Handler{store:store}
+	return &Handler{store: store}
 }
 func (h *Handler) RegisterRoutes(router *mux.Router) {
 	router.HandleFunc("/login", h.handleLogin).Methods("POST")
-	router.HandleFunc("/register", h.handlRegister).Methods("POST")
+	router.HandleFunc("/register", h.handleRegister).Methods("POST")
 }
 
 func (h *Handler) handleLogin(w http.ResponseWriter, r *http.Request) {
 
 }
-func (h *Handler) handlRegister(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) handleRegister(w http.ResponseWriter, r *http.Request) {
 	payload := types.RegisterUserPayLoad{}
 	if err := utils.ParseJSON(r, &payload); err != nil {
 		utils.WriteError(w, http.StatusBadRequest, err)
-    return
+		return
+	}
+	if err := utils.Validate.Struct(payload); err != nil {
+		errors := err.(validator.ValidationErrors)
+		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("invalid paylod %v", errors))
 	}
 
 	_, err := h.store.GetUserByEmail(payload.Email)
