@@ -26,12 +26,12 @@ func initConfig() Config {
 	godotenv.Load()
 	return Config{
 		PublicHost:             getEnv("PUBLIC_HOST", "http://localhost"),
-		Port:                   getEnv("PORT", "8080"),
+		Port:                   getEnv("PORT", "8081"),
 		DBUser:                 getEnv("DB_USER", "root"),
 		DBPassword:             getEnv("DB_PASSWORD", "testpw123"),
 		DBAddress:              fmt.Sprintf("%s:%s", getEnv("DB_ADDRESS", "127.0.0.1"), getEnv("DB_PORT", "3306")),
 		DBName:                 getEnv("DB_NAME", "ecomDB"),
-		JWTExpirationInSeconds: getEnvAsInt("JWT_EXP", 120),
+		JWTExpirationInSeconds: getEnvAsInt("JWT_EXP", 3600*24*7),
 		JWTSecret:              getEnv("JWT_SECRET", "very-good-secret"),
 	}
 }
