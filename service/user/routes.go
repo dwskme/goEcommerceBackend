@@ -35,6 +35,7 @@ func (h *Handler) handleRegister(w http.ResponseWriter, r *http.Request) {
 	if err := utils.Validate.Struct(payload); err != nil {
 		errors := err.(validator.ValidationErrors)
 		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("invalid paylod %v", errors))
+    return
 	}
 
 	_, err := h.store.GetUserByEmail(payload.Email)
