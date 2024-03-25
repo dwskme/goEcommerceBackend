@@ -1,0 +1,36 @@
+version: '3'
+services:
+
+  db:
+    image: mysql
+    healthcheck:
+      test: "exit 0"
+    volumes:
+      - db_data:/var/lib/mysql
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: testpw123
+      MYSQL_DATABASE: ecomDB
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: on-failure
+    volumes:
+      - .:/go/src/api
+    ports:
+      - "8081:8081"
+    environment:
+      DB_HOST: db
+      DB_USER: root
+      DB_PASSWORD: testpw123
+      DB_NAME: ecomDB
+    links:
+      - db
+    depends_on:
+      - db
+
+volumes:
+  db_data:
