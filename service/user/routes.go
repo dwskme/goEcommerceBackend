@@ -3,6 +3,7 @@ package user
 import (
 	"fmt"
 	"net/http"
+	"strconv"
 
 	"github.com/dwskme/goEcommerceBackend/config"
 	"github.com/dwskme/goEcommerceBackend/service/auth"
@@ -19,9 +20,13 @@ type Handler struct {
 func NewHandler(store types.UserStore) *Handler {
 	return &Handler{store: store}
 }
+
 func (h *Handler) RegisterRoutes(router *mux.Router) {
 	router.HandleFunc("/login", h.handleLogin).Methods("POST")
 	router.HandleFunc("/register", h.handleRegister).Methods("POST")
+
+	// admin routes
+	router.HandleFunc("/users/{userID}", auth.WithJWTAuth(h.handleGetUser, h.store)).Methods(http.MethodGet)
 }
 
 func (h *Handler) handleLogin(w http.ResponseWriter, r *http.Request) {
@@ -57,38 +62,67 @@ func (h *Handler) handleLogin(w http.ResponseWriter, r *http.Request) {
 
 	utils.WriteJSON(w, http.StatusOK, map[string]string{"token": token})
 }
+
 func (h *Handler) handleRegister(w http.ResponseWriter, r *http.Request) {
-	payload := types.RegisterUserPayLoad{}
-	if err := utils.ParseJSON(r, &payload); err != nil {
+	var user types.RegisterUserPayload
+	if err := utils.ParseJSON(r, &user); err != nil {
 		utils.WriteError(w, http.StatusBadRequest, err)
 		return
 	}
-	if err := utils.Validate.Struct(payload); err != nil {
+
+	if err := utils.Validate.Struct(user); err != nil {
 		errors := err.(validator.ValidationErrors)
-		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("invalid paylod %v", errors))
+		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("invalid payload: %v", errors))
 		return
 	}
 
-	_, err := h.store.GetUserByEmail(payload.Email)
+	// check if user exists
+	_, err := h.store.GetUserByEmail(user.Email)
 	if err == nil {
-		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("User with %s email exists.", payload.Email))
+		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("user with email %s already exists", user.Email))
 		return
 	}
 
-	hashedPassword, err := auth.HashPassword(payload.Password)
+	// hash password
+	hashedPassword, err := auth.HashPassword(user.Password)
 	if err != nil {
 		utils.WriteError(w, http.StatusInternalServerError, err)
+		return
 	}
 
 	err = h.store.CreateUser(types.User{
-		FirstName: payload.FirstName,
-		LastName:  payload.LastName,
-		Email:     payload.Email,
+		FirstName: user.FirstName,
+		LastName:  user.LastName,
+		Email:     user.Email,
 		Password:  hashedPassword,
 	})
 	if err != nil {
 		utils.WriteError(w, http.StatusInternalServerError, err)
 		return
 	}
+
 	utils.WriteJSON(w, http.StatusCreated, nil)
+}
+
+func (h *Handler) handleGetUser(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	str, ok := vars["userID"]
+	if !ok {
+		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("missing user ID"))
+		return
+	}
+
+	userID, err := strconv.Atoi(str)
+	if err != nil {
+		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("invalid user ID"))
+		return
+	}
+
+	user, err := h.store.GetUserByID(userID)
+	if err != nil {
+		utils.WriteError(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	utils.WriteJSON(w, http.StatusOK, user)
 }
