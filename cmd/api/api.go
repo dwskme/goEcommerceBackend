@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/dwskme/goEcommerceBackend/service/product"
 	"github.com/dwskme/goEcommerceBackend/service/user"
 	"github.com/gorilla/mux"
 )
@@ -27,6 +28,10 @@ func (s *APIServer) Run() error {
 	userStore := user.NewStore(s.db)
 	userHandler := user.NewHandler(userStore)
 	userHandler.RegisterRoutes(subrouter)
+
+	productStore := product.NewStore(s.db)
+	prodcutHandler := product.NewHandler(productStore, userStore)
+	prodcutHandler.RegisterRoutes(subrouter)
 
 	log.Println("Listening on:", s.addr)
 	return http.ListenAndServe(s.addr, router)
