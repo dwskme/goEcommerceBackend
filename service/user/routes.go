@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/dwskme/goEcommerceBackend/config"
 	"github.com/dwskme/goEcommerceBackend/service/auth"
 	"github.com/dwskme/goEcommerceBackend/types"
 	"github.com/dwskme/goEcommerceBackend/utils"
@@ -24,7 +25,37 @@ func (h *Handler) RegisterRoutes(router *mux.Router) {
 }
 
 func (h *Handler) handleLogin(w http.ResponseWriter, r *http.Request) {
+	var user types.LoginUserPayload
+	if err := utils.ParseJSON(r, &user); err != nil {
+		utils.WriteError(w, http.StatusBadRequest, err)
+		return
+	}
 
+	if err := utils.Validate.Struct(user); err != nil {
+		errors := err.(validator.ValidationErrors)
+		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("invalid payload: %v", errors))
+		return
+	}
+
+	u, err := h.store.GetUserByEmail(user.Email)
+	if err != nil {
+		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("not found, invalid email or password"))
+		return
+	}
+
+	if !auth.ComparePasswords(u.Password, []byte(user.Password)) {
+		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("invalid email or password"))
+		return
+	}
+
+	secret := []byte(config.Envs.JTWSecret)
+	token, err := auth.CreateJWT(secret, u.ID)
+	if err != nil {
+		utils.WriteError(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	utils.WriteJSON(w, http.StatusOK, map[string]string{"token": token})
 }
 func (h *Handler) handleRegister(w http.ResponseWriter, r *http.Request) {
 	payload := types.RegisterUserPayLoad{}
@@ -35,7 +66,7 @@ func (h *Handler) handleRegister(w http.ResponseWriter, r *http.Request) {
 	if err := utils.Validate.Struct(payload); err != nil {
 		errors := err.(validator.ValidationErrors)
 		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("invalid paylod %v", errors))
-    return
+		return
 	}
 
 	_, err := h.store.GetUserByEmail(payload.Email)
