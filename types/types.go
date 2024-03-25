@@ -17,8 +17,13 @@ type User struct {
 	CreatedAt time.Time `json:"createdAt"`
 }
 type RegisterUserPayLoad struct {
-	FirstName string `json:"firstName" validate:"required:`
+  FirstName string `json:"firstName" validate:"required"`
 	LastName  string `json:"lastName" validate:"required"`
 	Email     string `json:"email" validate:"required"`
 	Password  string `json:"password" validate:"required,min=3,max=10"`
+}
+
+type LoginUserPayload struct {
+	Email    string `json:"email" validate:"required,email"`
+	Password string `json:"password" validate:"required"`
 }
