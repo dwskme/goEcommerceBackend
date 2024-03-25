@@ -8,7 +8,7 @@ import (
 	"github.com/dwskme/goEcommerceBackend/service/auth"
 	types "github.com/dwskme/goEcommerceBackend/types"
 	"github.com/dwskme/goEcommerceBackend/utils"
-	"github.com/go-playground/validator"
+	"github.com/go-playground/validator/v10"
 	"github.com/gorilla/mux"
 )
 
